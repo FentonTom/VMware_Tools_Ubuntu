@@ -1,0 +1,45 @@
+#!/bin/bash
+## script to install VMware tools on Ubuntu 20.04
+## 
+
+echo "changing to /tmp directory"
+cd /tmp
+## install the tools need to build open-vm-tools
+apt install -y git automake make gobjc++ libtool pkg-config libmspack-dev libglib2.0-dev libpam0g-dev libssl-dev libxml2-dev libxmlsec1-dev libx11-dev libxext-dev libxinerama-dev libxi-dev libxrender-dev libxrandr-dev libxtst-dev libgdk-pixbuf2.0-dev libgtk-3-dev libgtkmm-3.0-dev
+
+echo "Getting source from github"
+## Get openvm-tools
+git clone https://github.com/vmware/open-vm-tools.git
+cd open-vm-tools/open-vm-tools/
+
+echo "Compiling code"
+## compile open-vm-tools
+autoreconf -i
+./configure --disable-dependency-tracking
+make
+make install
+ldconfig
+
+echo "creating file for service"
+## Create a unit file
+cat > /etc/systemd/system/vmtoolsd.service << EOF
+[Unit]
+Description=Service for virtual machines hosted on VMware
+Documentation=http://github.com/vmware/open-vm-tools
+After=network-online.target
+[Service]
+ExecStart=/usr/local/bin/vmtoolsd
+Restart=always
+TimeoutStopSec=5
+[Install]
+WantedBy=multi-user.target
+EOF
+
+Echo "Enable and start the open-vm-tools"
+## Enable and start the open-vm-tools
+systemctl enable vmtoolsd.service
+systemctl start vmtoolsd.service
+
+Echo "Checiking if it is running"
+## Verify that it is runnng
+systemctl status vmtoolsd.service
